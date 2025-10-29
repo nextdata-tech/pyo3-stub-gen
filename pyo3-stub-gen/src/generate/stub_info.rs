@@ -228,7 +228,7 @@ impl StubInfoBuilder {
                 return;
             }
         }
-        unreachable!("Missing struct_id/enum_id = {:?}", struct_id);
+        // If we reach here, the class/enum was filtered out, so silently skip
     }
 
     fn build(mut self) -> StubInfo {
