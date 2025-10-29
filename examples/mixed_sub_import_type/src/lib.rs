@@ -52,7 +52,7 @@ fn create_b(x: usize) -> B {
 #[derive(Debug)]
 struct C {
     a: A,
-    b: B
+    b: B,
 }
 
 #[gen_stub_pymethods]
