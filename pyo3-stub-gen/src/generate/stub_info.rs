@@ -11,6 +11,7 @@ use std::{
 pub struct StubInfo {
     pub modules: BTreeMap<String, Module>,
     pub python_root: PathBuf,
+    pub module_filter: Option<String>,
 }
 
 impl StubInfo {
@@ -26,6 +27,20 @@ impl StubInfo {
     /// not in the `gen_stub` executables due to [inventory]'s mechanism.
     pub fn from_project_root(default_module_name: String, project_root: PathBuf) -> Result<Self> {
         Ok(StubInfoBuilder::from_project_root(default_module_name, project_root).build())
+    }
+
+    /// Initialize [StubInfo] with a module filter.
+    /// Only types whose module path starts with the filter string will be included in the generated stubs.
+    /// This must be placed in your PyO3 library crate, i.e. the same crate where [inventory::submit]ted,
+    /// not in the `gen_stub` executables due to [inventory]'s mechanism.
+    pub fn from_project_root_with_filter(
+        default_module_name: String,
+        project_root: PathBuf,
+        filter: impl Into<String>,
+    ) -> Result<Self> {
+        let mut builder = StubInfoBuilder::from_project_root(default_module_name, project_root);
+        builder.module_filter = Some(filter.into());
+        Ok(builder.build())
     }
 
     pub fn generate(&self) -> Result<()> {
@@ -59,6 +74,7 @@ struct StubInfoBuilder {
     modules: BTreeMap<String, Module>,
     default_module_name: String,
     python_root: PathBuf,
+    module_filter: Option<String>,
 }
 
 impl StubInfoBuilder {
@@ -76,6 +92,7 @@ impl StubInfoBuilder {
             modules: BTreeMap::new(),
             default_module_name,
             python_root: project_root,
+            module_filter: None,
         }
     }
 
@@ -85,6 +102,14 @@ impl StubInfoBuilder {
         module.name = name;
         module.default_module_name = self.default_module_name.clone();
         module
+    }
+
+    fn should_include_module(&self, module: Option<&str>) -> bool {
+        let Some(filter) = &self.module_filter else {
+            return true;
+        };
+        let module_name = module.unwrap_or(&self.default_module_name);
+        module_name.starts_with(filter.as_str())
     }
 
     fn register_submodules(&mut self) {
@@ -221,27 +246,39 @@ impl StubInfoBuilder {
                 return;
             }
         }
-        unreachable!("Missing struct_id/enum_id = {:?}", struct_id);
+        // If we reach here, the class/enum was filtered out, so silently skip
     }
 
     fn build(mut self) -> StubInfo {
         for info in inventory::iter::<PyClassInfo> {
-            self.add_class(info);
+            if self.should_include_module(info.module) {
+                self.add_class(info);
+            }
         }
         for info in inventory::iter::<PyComplexEnumInfo> {
-            self.add_complex_enum(info);
+            if self.should_include_module(info.module) {
+                self.add_complex_enum(info);
+            }
         }
         for info in inventory::iter::<PyEnumInfo> {
-            self.add_enum(info);
+            if self.should_include_module(info.module) {
+                self.add_enum(info);
+            }
         }
         for info in inventory::iter::<PyFunctionInfo> {
-            self.add_function(info);
+            if self.should_include_module(info.module) {
+                self.add_function(info);
+            }
         }
         for info in inventory::iter::<PyVariableInfo> {
-            self.add_variable(info);
+            if self.should_include_module(Some(info.module)) {
+                self.add_variable(info);
+            }
         }
         for info in inventory::iter::<ModuleDocInfo> {
-            self.add_module_doc(info);
+            if self.should_include_module(Some(info.module)) {
+                self.add_module_doc(info);
+            }
         }
         for info in inventory::iter::<PyMethodsInfo> {
             self.add_methods(info);
@@ -250,6 +287,7 @@ impl StubInfoBuilder {
         StubInfo {
             modules: self.modules,
             python_root: self.python_root,
+            module_filter: self.module_filter,
         }
     }
 }
