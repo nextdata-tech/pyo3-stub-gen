@@ -12,6 +12,7 @@ pub struct StubInfo {
     pub modules: BTreeMap<String, Module>,
     pub python_root: PathBuf,
     pub module_filter: Option<String>,
+    pub rust_module_filter: Option<String>,
 }
 
 impl StubInfo {
@@ -40,6 +41,22 @@ impl StubInfo {
     ) -> Result<Self> {
         let mut builder = StubInfoBuilder::from_project_root(default_module_name, project_root);
         builder.module_filter = Some(filter.into());
+        Ok(builder.build())
+    }
+
+    /// Initialize [StubInfo] with a Rust module path filter.
+    /// Only types whose Rust module path (captured at compile time via module_path!()) starts with
+    /// the filter string will be included in the generated stubs.
+    /// This is useful for filtering out older versions when using include! to re-export types.
+    /// This must be placed in your PyO3 library crate, i.e. the same crate where [inventory::submit]ted,
+    /// not in the `gen_stub` executables due to [inventory]'s mechanism.
+    pub fn from_project_root_with_rust_filter(
+        default_module_name: String,
+        project_root: PathBuf,
+        rust_filter: impl Into<String>,
+    ) -> Result<Self> {
+        let mut builder = StubInfoBuilder::from_project_root(default_module_name, project_root);
+        builder.rust_module_filter = Some(rust_filter.into());
         Ok(builder.build())
     }
 
@@ -73,6 +90,7 @@ struct StubInfoBuilder {
     default_module_name: String,
     python_root: PathBuf,
     module_filter: Option<String>,
+    rust_module_filter: Option<String>,
 }
 
 impl StubInfoBuilder {
@@ -91,6 +109,7 @@ impl StubInfoBuilder {
             default_module_name,
             python_root: project_root,
             module_filter: None,
+            rust_module_filter: None,
         }
     }
 
@@ -108,6 +127,13 @@ impl StubInfoBuilder {
         };
         let module_name = module.unwrap_or(&self.default_module_name);
         module_name.starts_with(filter.as_str())
+    }
+
+    fn should_include_rust_module(&self, rust_module_path: &str) -> bool {
+        let Some(filter) = &self.rust_module_filter else {
+            return true;
+        };
+        rust_module_path.starts_with(filter.as_str())
     }
 
     fn register_submodules(&mut self) {
@@ -233,17 +259,23 @@ impl StubInfoBuilder {
 
     fn build(mut self) -> StubInfo {
         for info in inventory::iter::<PyClassInfo> {
-            if self.should_include_module(info.module) {
+            if self.should_include_module(info.module)
+                && self.should_include_rust_module(info.rust_module_path)
+            {
                 self.add_class(info);
             }
         }
         for info in inventory::iter::<PyComplexEnumInfo> {
-            if self.should_include_module(info.module) {
+            if self.should_include_module(info.module)
+                && self.should_include_rust_module(info.rust_module_path)
+            {
                 self.add_complex_enum(info);
             }
         }
         for info in inventory::iter::<PyEnumInfo> {
-            if self.should_include_module(info.module) {
+            if self.should_include_module(info.module)
+                && self.should_include_rust_module(info.rust_module_path)
+            {
                 self.add_enum(info);
             }
         }
@@ -270,6 +302,7 @@ impl StubInfoBuilder {
             modules: self.modules,
             python_root: self.python_root,
             module_filter: self.module_filter,
+            rust_module_filter: self.rust_module_filter,
         }
     }
 }

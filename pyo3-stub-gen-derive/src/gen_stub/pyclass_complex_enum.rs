@@ -90,7 +90,7 @@ impl ToTokens for PyComplexEnumInfo {
                 enum_id: std::any::TypeId::of::<#enum_type>,
                 variants: &[ #( #variants ),* ],
                 module: #module,
-                doc: #doc,
+                rust_module_path: module_path!(),                doc: #doc,
             }
         })
     }
