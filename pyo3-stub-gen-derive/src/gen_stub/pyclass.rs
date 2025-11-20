@@ -124,6 +124,7 @@ impl ToTokens for PyClassInfo {
                 getters: &[ #( #getters),* ],
                 setters: &[ #( #setters),* ],
                 module: #module,
+                rust_module_path: module_path!(),
                 doc: #doc,
                 bases: &[ #( <#bases as ::pyo3_stub_gen::PyStubType>::type_output ),* ],
                 has_eq: #has_eq,

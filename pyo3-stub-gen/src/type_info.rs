@@ -163,6 +163,8 @@ pub struct PyClassInfo {
     pub pyclass_name: &'static str,
     /// Module name specified by `#[pyclass(module = "foo.bar")]`
     pub module: Option<&'static str>,
+    /// Rust module path captured at compile time via module_path!()
+    pub rust_module_path: &'static str,
     /// Docstring
     pub doc: &'static str,
     /// static members by `#[pyo3(get)]`
@@ -212,6 +214,8 @@ pub struct PyComplexEnumInfo {
     pub pyclass_name: &'static str,
     /// Module name specified by `#[pyclass(module = "foo.bar")]`
     pub module: Option<&'static str>,
+    /// Rust module path captured at compile time via module_path!()
+    pub rust_module_path: &'static str,
     /// Docstring
     pub doc: &'static str,
     /// static members by `#[pyo3(get, set)]`
@@ -229,6 +233,8 @@ pub struct PyEnumInfo {
     pub pyclass_name: &'static str,
     /// Module name specified by `#[pyclass(module = "foo.bar")]`
     pub module: Option<&'static str>,
+    /// Rust module path captured at compile time via module_path!()
+    pub rust_module_path: &'static str,
     /// Docstring
     pub doc: &'static str,
     /// Variants of enum (name, doc)
