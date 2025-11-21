@@ -167,6 +167,7 @@ mod test {
             ],
             setters: &[],
             module: Some("my_module"),
+            rust_module_path: module_path!(),
             doc: "",
             bases: &[],
         }

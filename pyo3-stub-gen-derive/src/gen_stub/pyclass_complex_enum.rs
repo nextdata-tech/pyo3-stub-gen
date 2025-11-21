@@ -221,6 +221,7 @@ mod test {
                 },
             ],
             module: Some("my_module"),
+            rust_module_path: module_path!(),
             doc: "",
         }
         "#);

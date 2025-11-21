@@ -32,6 +32,7 @@
 //!             },
 //!         ],
 //!         setters: &[],
+//!         rust_module_path: module_path!(),
 //!         doc: "",
 //!         bases: &[],
 //!     }
