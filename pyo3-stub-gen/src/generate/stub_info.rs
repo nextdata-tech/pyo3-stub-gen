@@ -55,7 +55,11 @@ impl StubInfo {
         project_root: PathBuf,
         rust_filter: impl Into<String>,
     ) -> Result<Self> {
-        Self::from_project_root_with_rust_filters(default_module_name, project_root, &[rust_filter.into()])
+        Self::from_project_root_with_rust_filters(
+            default_module_name,
+            project_root,
+            &[rust_filter.into()],
+        )
     }
 
     /// Initialize [StubInfo] with multiple Rust module path filters.
@@ -147,7 +151,9 @@ impl StubInfoBuilder {
         let Some(filters) = &self.rust_module_filters else {
             return true;
         };
-        filters.iter().any(|filter| rust_module_path.starts_with(filter.as_str()))
+        filters
+            .iter()
+            .any(|filter| rust_module_path.starts_with(filter.as_str()))
     }
 
     fn register_submodules(&mut self) {
