@@ -12,7 +12,7 @@ pub struct StubInfo {
     pub modules: BTreeMap<String, Module>,
     pub python_root: PathBuf,
     pub module_filter: Option<String>,
-    pub rust_module_filter: Option<String>,
+    pub rust_module_filters: Option<Vec<String>>,
 }
 
 impl StubInfo {
@@ -55,8 +55,22 @@ impl StubInfo {
         project_root: PathBuf,
         rust_filter: impl Into<String>,
     ) -> Result<Self> {
+        Self::from_project_root_with_rust_filters(default_module_name, project_root, &[rust_filter.into()])
+    }
+
+    /// Initialize [StubInfo] with multiple Rust module path filters.
+    /// Only types whose Rust module path (captured at compile time via module_path!()) starts with
+    /// ANY of the filter strings will be included in the generated stubs.
+    /// This is useful when you have types in multiple module hierarchies that should be included.
+    /// This must be placed in your PyO3 library crate, i.e. the same crate where [inventory::submit]ted,
+    /// not in the `gen_stub` executables due to [inventory]'s mechanism.
+    pub fn from_project_root_with_rust_filters(
+        default_module_name: String,
+        project_root: PathBuf,
+        rust_filters: &[String],
+    ) -> Result<Self> {
         let mut builder = StubInfoBuilder::from_project_root(default_module_name, project_root);
-        builder.rust_module_filter = Some(rust_filter.into());
+        builder.rust_module_filters = Some(rust_filters.to_vec());
         Ok(builder.build())
     }
 
@@ -90,7 +104,7 @@ struct StubInfoBuilder {
     default_module_name: String,
     python_root: PathBuf,
     module_filter: Option<String>,
-    rust_module_filter: Option<String>,
+    rust_module_filters: Option<Vec<String>>,
 }
 
 impl StubInfoBuilder {
@@ -109,7 +123,7 @@ impl StubInfoBuilder {
             default_module_name,
             python_root: project_root,
             module_filter: None,
-            rust_module_filter: None,
+            rust_module_filters: None,
         }
     }
 
@@ -130,10 +144,10 @@ impl StubInfoBuilder {
     }
 
     fn should_include_rust_module(&self, rust_module_path: &str) -> bool {
-        let Some(filter) = &self.rust_module_filter else {
+        let Some(filters) = &self.rust_module_filters else {
             return true;
         };
-        rust_module_path.starts_with(filter.as_str())
+        filters.iter().any(|filter| rust_module_path.starts_with(filter.as_str()))
     }
 
     fn register_submodules(&mut self) {
@@ -302,7 +316,7 @@ impl StubInfoBuilder {
             modules: self.modules,
             python_root: self.python_root,
             module_filter: self.module_filter,
-            rust_module_filter: self.rust_module_filter,
+            rust_module_filters: self.rust_module_filters,
         }
     }
 }
