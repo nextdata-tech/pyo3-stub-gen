@@ -53,6 +53,9 @@
 //!
 //!         setters: &[],
 //!
+//!         // Rust module path (for filtering)
+//!         rust_module_path: module_path!(),
+//!
 //!         doc: "Docstring used in Python",
 //!
 //!         // Base classes
